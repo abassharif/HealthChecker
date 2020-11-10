@@ -668,7 +668,7 @@ param(
 [Parameter(Mandatory=$false)][scriptblock]$VerboseFunctionCaller
 )
 
-    #Function Version 1.2
+    #Function Version 1.3
     <# 
     Required Functions: 
         https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Write-HostWriters/Write-ScriptMethodHostWriter.ps1
@@ -843,12 +843,12 @@ param(
     $loggerObject | Add-Member -MemberType ScriptMethod -Name "CheckNumberOfFiles" -Value {
 
         $filter = "{0}*" -f $this.InstanceBaseName
-        $items = Get-ChildItem -Path $this.FileDirectory | ?{$_.Name -like $filter}
+        $items = Get-ChildItem -Path $this.FileDirectory | Where-Object {$_.Name -like $filter}
         if($items.Count -gt $this.NumberOfLogsToKeep)
         {
             do{
-                $items | Sort-Object LastWriteTime | Select -First 1 | Remove-Item -Force 
-                $items = Get-ChildItem -Path $this.FileDirectory | ?{$_.Name -like $filter}
+                $items | Sort-Object LastWriteTime | Select-Object -First 1 | Remove-Item -Force 
+                $items = Get-ChildItem -Path $this.FileDirectory | Where-Object {$_.Name -like $filter}
             }while($items.Count -gt $this.NumberOfLogsToKeep)
         }
     }
@@ -1603,7 +1603,7 @@ Function Get-AllNicInformation {
     [Parameter(Mandatory=$false)][string]$ComputerFQDN,
     [Parameter(Mandatory=$false)][scriptblock]$CatchActionFunction
     )
-    #Function Version 1.3
+    #Function Version 1.4
     <# 
     Required Functions: 
         https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Write-VerboseWriters/Write-VerboseWriter.ps1
@@ -1670,7 +1670,7 @@ Function Get-AllNicInformation {
         {
             $currentErrors = $Error.Count
             $cimSession = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
-            $networkIpConfiguration = Get-NetIPConfiguration -CimSession $CimSession -ErrorAction Stop | ?{$_.NetAdapter.MediaConnectionState -eq "Connected"}
+            $networkIpConfiguration = Get-NetIPConfiguration -CimSession $CimSession -ErrorAction Stop | Where-Object {$_.NetAdapter.MediaConnectionState -eq "Connected"}
     
             if ($CatchActionFunction -ne $null)
             {
@@ -1902,7 +1902,7 @@ Function Get-HttpProxySetting {
     )
         $connections = Get-ItemProperty -Path $RegistryLocation
         $Proxy = [string]::Empty
-        if(($connections -ne $null) -and ($Connections | gm).Name -contains "WinHttpSettings")
+        if(($connections -ne $null) -and ($Connections | Get-Member).Name -contains "WinHttpSettings")
         {
             foreach($Byte in $Connections.WinHttpSettings)
             {
@@ -3032,7 +3032,7 @@ param(
         $exchangeInformation.ServerMaintenance = Get-ExchangeServerMaintenanceState -ComponentsToSkip "ForwardSyncDaemon","ProvisioningRps"
         if($buildInformation.ServerRole -ne [HealthChecker.ExchangeServerRole]::ClientAccess)
         {
-            $exchangeInformation.ExchangeServicesNotRunning = Test-ServiceHealth -Server $Script:Server | %{$_.ServicesNotRunning}
+            $exchangeInformation.ExchangeServicesNotRunning = Test-ServiceHealth -Server $Script:Server | ForEach-Object {$_.ServicesNotRunning}
         }
     }
     elseif($buildInformation.MajorVersion -eq [HealthChecker.ExchangeMajorVersion]::Exchange2010)
@@ -5010,7 +5010,7 @@ param(
         {
             Write-Grey($keyGrouping.Name)
             $dashes = [string]::empty
-            1..($keyGrouping.Name.Length) | %{$dashes = $dashes + "-"}
+            1..($keyGrouping.Name.Length) | ForEach-Object {$dashes = $dashes + "-"}
             Write-Grey($dashes)
         }
 
@@ -5020,7 +5020,7 @@ param(
 
             if ($line.TabNumber -ne 0)
             {
-                1..($line.TabNumber) | %{$tab = $tab + "`t"}
+                1..($line.TabNumber) | ForEach-Object {$tab = $tab + "`t"}
             }
 
             $writeValue = "{0}{1}" -f $tab, $line.Line
@@ -5239,7 +5239,7 @@ Function Get-ExchangeDCCoreRatio {
     }
 
     $ADSite = [System.DirectoryServices.ActiveDirectory.ActiveDirectorySite]::GetComputerSite().Name
-    [array]$DomainControllers = (Get-ADForest).Domains | %{ Get-ADDomainController -Filter {isGlobalCatalog -eq $true -and Site -eq $ADSite} -Server $_ }
+    [array]$DomainControllers = (Get-ADForest).Domains | ForEach-Object { Get-ADDomainController -Filter {isGlobalCatalog -eq $true -and Site -eq $ADSite} -Server $_ }
 
     [System.Collections.Generic.List[System.Object]]$DCList = New-Object System.Collections.Generic.List[System.Object]
     $DCCoresTotal = 0
@@ -5480,7 +5480,7 @@ Function Main {
         $fullPaths = Get-OnlyRecentUniqueServersXMLs $files
         $importData = Import-MyData -FilePaths $fullPaths
         Create-HtmlServerReport -AnalyzedHtmlServerValues $importData.HtmlServerValues
-        sleep 2;
+        Start-Sleep 2;
         return
     }
 
