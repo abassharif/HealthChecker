@@ -1449,7 +1449,7 @@ Function Get-DotNetDllFileVersions {
     [scriptblock]$CatchActionFunction
     )
 
-    #Function Version 1.1
+    #Function Version 1.2
     <#
     Required Functions:
         https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Write-VerboseWriters/Write-VerboseWriter.ps1
@@ -1459,7 +1459,7 @@ Function Get-DotNetDllFileVersions {
 
     Write-VerboseWriter("Calling: Get-DotNetDllFileVersions")
 
-    Function ScriptBlock-GetItem{
+    Function Invoke-ScriptBlockGetItem {
     param(
     [string]$FilePath
     )
@@ -1491,20 +1491,24 @@ Function Get-DotNetDllFileVersions {
     foreach($filename in $FileNames)
     {
         Write-VerboseWriter("Query .NET DLL information for machine: {0}" -f $ComputerName)
-        $getItem = Invoke-ScriptBlockHandler -ComputerName $ComputerName -ScriptBlock ${Function:ScriptBlock-GetItem} -ArgumentList ("{0}\{1}" -f $dotNetInstallPath, $filename) -CatchActionFunction $CatchActionFunction
+        $getItem = Invoke-ScriptBlockHandler -ComputerName $ComputerName -ScriptBlock ${Function:Invoke-ScriptBlockGetItem} -ArgumentList ("{0}\{1}" -f $dotNetInstallPath, $filename) -CatchActionFunction $CatchActionFunction
         $files.Add($filename, $getItem)
     }
 
     return $files
 }
 
-Function Is-Admin {
+# Master Template: https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Confirm-Administrator/Confirm-Administrator.ps1
+Function Confirm-Administrator {
+    #Function Version 1.1
     $currentPrincipal = New-Object Security.Principal.WindowsPrincipal( [Security.Principal.WindowsIdentity]::GetCurrent() )
-    If( $currentPrincipal.IsInRole( [Security.Principal.WindowsBuiltInRole]::Administrator )) {
-        return $true
+    if ($currentPrincipal.IsInRole( [Security.Principal.WindowsBuiltInRole]::Administrator ))
+    {
+        return $true 
     }
-    else {
-        return $false
+    else 
+    {
+        return $false 
     }
 }
 
@@ -5037,11 +5041,11 @@ param(
     }
 }
 
-Function Create-HtmlServerReport {
+Function New-HtmlServerReport {
 param(
 [Parameter(Mandatory=$true)][array]$AnalyzedHtmlServerValues
 )
-    Write-VerboseOutput("Calling: Create-HtmlServerReport")
+    Write-VerboseOutput("Calling: New-HtmlServerReport")
 
     $htmlHeader = "<html>
         <style>
@@ -5451,7 +5455,7 @@ Function HealthCheckerMain {
 }
 Function Main {
     
-    if(-not (Is-Admin) -and
+    if(-not (Confirm-Administrator) -and
         (-not $AnalyzeDataOnly -and
         -not $BuildHtmlServersReport))
 	{
@@ -5479,7 +5483,7 @@ Function Main {
         $files = Get-HealthCheckFilesItemsFromLocation
         $fullPaths = Get-OnlyRecentUniqueServersXMLs $files
         $importData = Import-MyData -FilePaths $fullPaths
-        Create-HtmlServerReport -AnalyzedHtmlServerValues $importData.HtmlServerValues
+        New-HtmlServerReport -AnalyzedHtmlServerValues $importData.HtmlServerValues
         Start-Sleep 2;
         return
     }
@@ -5534,7 +5538,7 @@ Function Main {
             $analyzedResults += $analyzedServerResults
         }
 
-        Create-HtmlServerReport -AnalyzedHtmlServerValues $analyzedResults.HtmlServerValues
+        New-HtmlServerReport -AnalyzedHtmlServerValues $analyzedResults.HtmlServerValues
         return
     }
 
